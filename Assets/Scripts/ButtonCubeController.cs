@@ -4,10 +4,9 @@ using UnityEngine;
 
 public class ButtonCubeController : MonoBehaviour
 {
-    public float buttonExtendAmount = 2f;
-    public float targetScaleZ = 35f;
+    public float buttonExtendAmount = 35f;
     public GameObject targetCube;
-    private int touchCount = 0;
+    private bool isActivated = false;
 
     private Vector3 originalScale;
     private Vector3 originalPosition;
@@ -18,7 +17,7 @@ public class ButtonCubeController : MonoBehaviour
         originalPosition = targetCube.transform.position;
     }
 
-    void OnTriggerEnter(Collider other)
+    public void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
@@ -28,52 +27,41 @@ public class ButtonCubeController : MonoBehaviour
 
     public void ToggleCube()
     {
-        touchCount++;
-
-        if (touchCount % 2 == 1)
+        if (isActivated)
         {
-            StartCoroutine(ExtendCube());
+            StartCoroutine(AnimateCube(originalScale, originalPosition));
         }
         else
         {
-            StartCoroutine(ShrinkCube());
+            Vector3 targetScale = new Vector3(originalScale.x, originalScale.y, originalScale.z + buttonExtendAmount);
+            Vector3 targetPosition = originalPosition - new Vector3(0f, 0f, buttonExtendAmount / 2);
+
+            StartCoroutine(AnimateCube(targetScale, targetPosition));
         }
+
+        isActivated = !isActivated;
     }
 
-    IEnumerator ExtendCube()
+    public IEnumerator AnimateCube(Vector3 targetScale, Vector3 targetPosition)
     {
-        Vector3 targetScale = new Vector3(originalScale.x, originalScale.y, targetScaleZ);
-
         float duration = 1f;
         float elapsedTime = 0f;
 
+        Vector3 startScale = targetCube.transform.localScale;
+        Vector3 startPosition = targetCube.transform.position;
+
         while (elapsedTime < duration)
         {
-            targetCube.transform.localScale = Vector3.Lerp(originalScale, targetScale, elapsedTime / duration);
+            float t = elapsedTime / duration;
+            targetCube.transform.localScale = Vector3.Lerp(startScale, targetScale, t);
+            targetCube.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+
             elapsedTime += Time.deltaTime;
             yield return null;
         }
 
+        // Asegurarse de que el objeto esté en el estado final
         targetCube.transform.localScale = targetScale;
-    }
-
-    IEnumerator ShrinkCube()
-    {
-        Vector3 targetScale = originalScale;
-
-        float duration = 1f;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < duration)
-        {
-            targetCube.transform.localScale = Vector3.Lerp(targetCube.transform.localScale, targetScale, elapsedTime / duration);
-            elapsedTime += Time.deltaTime;
-            yield return null;
-        }
-
-        targetCube.transform.localScale = targetScale;
-
-        // Restaurar la posición original
-        targetCube.transform.position = originalPosition;
+        targetCube.transform.position = targetPosition;
     }
 }
